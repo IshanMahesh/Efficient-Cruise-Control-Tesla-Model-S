@@ -1,6 +1,4 @@
-%% Cruise control - Speed reference tracking
-% Simulation and animation of a vehicle with cruise control and varying
-% speed reference.
+%%The Efficient Cruise Control
 %%
 
 clear ; close all ; clc
@@ -8,17 +6,17 @@ clear ; close all ; clc
 %% Scenario
 
 % Road
-road_Width              = 10;       % Road width                    [m]
+road_Width              = 11;       % Road width                    [m]
 road_Margin             = 2;        % Road margin                   [m]
-road_Dist_Analysis      = 100;      % Road distance analysis        [m]
+road_Dist_Analysis      = 200;      % Road distance analysis        [m]
 % Vehicle
-vehicle_Length          = 4.65;     % Length of the vehicle         [m]
-vehicle_Width           = 1.78;     % Width of the vehicle          [m]
-vehicle_Initial_Speed   = 72/3.6;   % Initial speed of the vehicle  [m/s]
+vehicle_Length          = 11.15;     % Length of the vehicle         [m]
+vehicle_Width           = 2.8;     % Width of the vehicle          [m]
+vehicle_Initial_Speed   = 300/1.7;   % Initial speed of the vehicle  [m/s]
 vehicle_Mass            = 1000;     % Mass of the vehicle           [kg]
 vehicle_Area            = 2.5;      % Frontal area of the vehicle   [m2]
-vehicle_Cd              = 0.35;     % Drag coefficient              [-]
-air_Density             = 1;        % Air density                   [kg/m3]
+vehicle_Cd              = 0.5;     % Drag coefficient              [-]
+air_Density             = 2;        % Air density                   [kg/m3]
 
 % Lumped air drag coefficient [N(s/m)2]
 C = 0.5 * vehicle_Area * vehicle_Cd * air_Density;   
@@ -28,82 +26,80 @@ vehicle.C = C;
 vehicle.M = vehicle_Mass;
 
 % Parameters
-tf      = 60;                       % Final time                    [s]
-fR      = 30;                       % Frame rate                    [fps]
-dt      = 1/fR;                     % Time resolution               [s]
-TSPAN   = linspace(0,tf,tf*fR);     % Time                          [s]
+Tf      = 60;                       % Final time                    [s]
+FR      = 30;                       % Frame rate                    [fps]
+dt      = 1/FR;                     % Time resolution               [s]
+Tspan   = linspace(0,Tf,Tf*FR);     % Time                          [s]
 
 %% Simulation
 
-% Initial conditions [position speed]
-Z0 = [0 vehicle_Initial_Speed]; 
+% Initial conditions
+z0 = [0 vehicle_Initial_Speed]; 
 
 % Integration
 options = odeset('RelTol',1e-6);
-[TOUT,ZOUT] = ode45(@(t,z) vehicle_dynamics(t,z,vehicle),TSPAN,Z0,options);
+[t_OUT,z_OUT] = ode45(@(t,z) vh_dyn(t,z,vehicle),Tspan,z0,options);
 
 % States
-vehicle_position    = ZOUT(:,1);
-vehicle_speed       = ZOUT(:,2);
-% Acceleration
-% Preallocating
-vehicle_acc         = zeros(1,length(TOUT));
-force_long          = zeros(1,length(TOUT));
-speed_ref           = zeros(1,length(TOUT));
-for i=1:length(TOUT)
-    [dz,F_l,V_r]    = vehicle_dynamics(TOUT(i),ZOUT(i,:),vehicle);
-    vehicle_acc(i)  = dz(2);
-    force_long(i)   = F_l;
-    speed_ref(i)    = V_r;
+vehicle_position    = z_OUT(:,1);
+vehicle_speed       = z_OUT(:,2);
+
+
+vh_acc         = zeros(1,length(t_OUT));
+frc_long          = zeros(1,length(t_OUT));
+spd_ref           = zeros(1,length(t_OUT));
+for i=1:length(t_OUT)
+    [dz,F_l,V_r]    = vh_dyn(t_OUT(i),z_OUT(i,:),vehicle);
+    vh_acc(i)  = dz(2);
+    frc_long(i)   = F_l;
+    spd_ref(i)    = V_r;
 end
 
 %% Results
 
 figure
-% set(gcf,'Position',[50 50 1280 720]) % YouTube: 720p
-% set(gcf,'Position',[50 50 854 480]) % YouTube: 480p
-set(gcf,'Position',[50 50 640 640]) % Social
+set(gcf,'Position',[50 50 640 640])
     
-% Create and open video writer object
+% Create a video writer object
 v = VideoWriter('cruise_control.mp4','MPEG-4');
 v.Quality = 100;
 open(v);
 
-for i=1:length(TOUT)
+for i=1:length(t_OUT)
     subplot(3,2,1)
         hold on ; grid on ; box on
-        set(gca,'xlim',[0 TOUT(end)],'ylim',[0 1.2*max(vehicle_position)])
+        set(gca,'xlim',[0 t_OUT(end)],'ylim',[0 1.2*max(vehicle_position)])
         cla 
-        plot(TOUT,vehicle_position,'b')
-        plot([TOUT(i) TOUT(i)],[0 1.2*max(vehicle_position)],'k--') 
+        plot(t_OUT,vehicle_position,'b')
+        plot([t_OUT(i) t_OUT(i)],[0 1.2*max(vehicle_position)],'k--') 
         xlabel('Time [s]')
         ylabel('Position [m]')
         title('Position')
     subplot(3,2,2)
         hold on ; grid on ; box on
-        set(gca,'xlim',[0 TOUT(end)],'ylim',[0 1.2*max(vehicle_speed)])
+        set(gca,'xlim',[0 t_OUT(end)],'ylim',[0 1.2*max(vehicle_speed)])
         cla 
-        plot(TOUT,speed_ref,'k')
-        plot(TOUT,vehicle_speed,'b')
-        plot([TOUT(i) TOUT(i)],[0 1.2*max(vehicle_speed)],'k--') 
+        plot(t_OUT,spd_ref,'k')
+        plot(t_OUT,vehicle_speed,'b')
+        plot([t_OUT(i) t_OUT(i)],[0 1.2*max(vehicle_speed)],'k--') 
         xlabel('Time [s]')
         ylabel('Speed [m/s]')
         title('Speed (Black=Reference, Blue=Actual)')
     subplot(3,2,3)
         hold on ; grid on ; box on
-        set(gca,'xlim',[0 TOUT(end)],'ylim',[min(vehicle_acc)-1 max(vehicle_acc)+1])
+        set(gca,'xlim',[0 t_OUT(end)],'ylim',[min(vh_acc)-1 max(vh_acc)+1])
         cla 
-        plot(TOUT,vehicle_acc,'b')
-        plot([TOUT(i) TOUT(i)],[min(vehicle_acc)-1 max(vehicle_acc)+1],'k--') 
+        plot(t_OUT,vh_acc,'b')
+        plot([t_OUT(i) t_OUT(i)],[min(vh_acc)-1 max(vh_acc)+1],'k--') 
         xlabel('Time [s]')
         ylabel('Acceleration [m/s2]')
         title('Acceleration')
     subplot(3,2,4)
         hold on ; grid on ; box on
-        set(gca,'xlim',[0 TOUT(end)],'ylim',[min(force_long)-500 max(force_long)+500])
+        set(gca,'xlim',[0 t_OUT(end)],'ylim',[min(frc_long)-500 max(frc_long)+500])
         cla 
-        plot(TSPAN,force_long,'b')
-        plot([TOUT(i) TOUT(i)],[min(force_long)-500 max(force_long)+500],'k--') 
+        plot(Tspan,frc_long,'b')
+        plot([t_OUT(i) t_OUT(i)],[min(frc_long)-500 max(frc_long)+500],'k--') 
         xlabel('Time [s]')
         ylabel('Lon. force [N]')
         title('Longitudinal force')
@@ -136,34 +132,34 @@ close(v);
 
 %% Auxiliary functions
 
-function [dstates,F_lon,V_ref] = vehicle_dynamics(t,states,vehicle)
+function [dst,f_lon,v_ref] = vh_dyn(t,st,vh)
     
     % Parameters
-    m = vehicle.M;              % Mass of the vehicle           [kg]
-    C = vehicle.C;              % Lumped air drag coefficient   [N(s/m)2]
+    M = vh.M;              % Mass of the vehicle           [kg]
+    C = vh.C;              % Lumped air drag coefficient   [N(s/m)2]
 
     % States
 %     X = states(1);
-    V = states(2);
+    V = st(2);
 
     % Drag resistance
     Dx = C*V^2;
     
     % Reference speed [m/s]
     if t < 20
-        V_ref   = 25; 
+        v_ref   = 25; 
     elseif t < 40
-        V_ref   = 10; 
+        v_ref   = 10; 
     else
-        V_ref   = 20;
+        v_ref   = 20;
     end
     
     % Cruise controller
     Kp = 500;
-    F_lon  = Kp*(V_ref - V) + C*V_ref^2;
+    f_lon  = Kp*(v_ref - V) + C*v_ref^2;
     
     % Dynamics
-    dstates(1,1) = V;
-    dstates(2,1) = (F_lon - Dx)/m;
+    dst(1,1) = V;
+    dst(2,1) = (f_lon - Dx)/m;
     
 end
