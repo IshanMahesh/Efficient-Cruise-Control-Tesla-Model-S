@@ -1,0 +1,53 @@
+% Cruise Control with Two Vehicles
+% Parameters
+T_stp = 0.1;   % simulation time step (s)
+t = 20;             % simulation time (s)
+num_stps = t / T_stp;
+% Vehicle 1
+in_speed_1 = 20;  
+des_speed_1 = 25;   
+KP_1 = 1;              
+% Vehicle 2
+in_2 = 22;  
+des_speed_2 = 25;   
+KP_2 = 1;              
+% Initialize arrays to store results
+t_axis = zeros(num_stps, 1);
+spd_1 = zeros(num_stps, 1);
+spd_2 = zeros(num_stps, 1);
+% Initial conditions
+spd_1(1) = in_speed_1;
+spd_2(1) = in_2;
+% Simulation loop
+for k = 2:num_stps
+   % Time
+   t_axis(k) = (k - 1) * T_stp;
+  
+   % Control law (Proportional Controller)
+   error_1 = des_speed_1 - spd_1(k-1);
+   acceleration_1 = KP_1 * error_1;
+  
+   error_2 = des_speed_2 - spd_2(k-1);
+   acceleration_2 = KP_2 * error_2;
+  
+   % Update vehicle speeds
+   spd_1(k) = spd_1(k-1) + acceleration_1 * T_stp;
+   spd_2(k) = spd_2(k-1) + acceleration_2 * T_stp;
+end
+% Plotting results
+figure;
+subplot(2,1,1);
+plot(t_axis, spd_1, 'LineWidth', 2);
+hold on;
+plot(t_axis, spd_2, 'LineWidth', 2);
+xlabel('Time (s)');
+ylabel('Speed (m/s)');
+title('Cruise Control with Two Vehicles');
+legend('Vehicle 1', 'Vehicle 2');
+subplot(2,1,2);
+plot(t_axis, spd_1 - des_speed_1, 'LineWidth', 2);
+hold on;
+plot(t_axis, spd_2 - des_speed_2, 'LineWidth', 2);
+xlabel('Time (s)');
+ylabel('Speed Error (m/s)');
+legend('Error Vehicle 1', 'Error Vehicle 2');
