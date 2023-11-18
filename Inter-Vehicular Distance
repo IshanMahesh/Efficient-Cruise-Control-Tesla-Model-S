@@ -1,0 +1,39 @@
+% Cruise Control with Inter-Vehicular Distance Simulation and Plotting
+
+% Parameters
+N_V = 7;   % Number of vehicles
+D_speed = 10;  % Desired speed in m/s
+d_dt = 5;     % Desired gap between vehicles in meters
+sim_t = 10; % Simulation time in seconds
+t_st = 0.1;     % Time step for simulation
+
+% Prior positions and velocities
+pos = zeros(N_V, 1);
+v = D_speed * ones(N_V, 1);
+
+% Simulation loop
+for t = 0:t_st:sim_t
+    % Update positions
+    for i = 2:N_V
+        d_prec = pos(i-1) - pos(i);
+        des_d = d_dt + v(i) * t; 
+        pos_change = (des_d - d_prec);
+        pos(i) = pos(i) + pos_change;
+    end
+    
+    % Display of the current positions
+    disp(['Time: ' num2str(t) 's, Positions: ' num2str(pos')]);
+    
+    % Update velocities (assuming constant speed)
+    v = D_speed * ones(N_V, 1);
+    
+    % Plot positions
+    figure(1);
+    plot(pos, zeros(N_V, 1), 'o', 'MarkerSize', 10, 'LineWidth', 2);
+    title('Cruise Control with Inter-Vehicular Distance');
+    xlabel('Position (meters)');
+    ylabel('Lane');
+    ylim([-0.5 0.5]); % Set y-axis limits to show vehicles in a single lane
+    grid on;
+    pause(t_st);
+end
